@@ -1,1 +1,233 @@
+<!DOCTYPE html>
 
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Srikanth Koniki — Personal Planner</title>
+
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Google Identity Services -->
+
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <script src="https://apis.google.com/js/api.js" async defer></script>
+
+</head>
+
+<body>
+
+  <!-- LOGIN PAGE -->
+
+  <div id="loginPage" class="login-page">
+    <div class="login-card">
+
+```
+  <div class="logo">SK</div>
+
+  <h1>Srikanth Koniki</h1>
+  <p class="subtitle">My Personal Planner</p>
+
+  <p class="description">
+    Plan your month, organize your day, manage tasks and keep your notes.
+  </p>
+
+  <button id="googleLoginBtn" class="google-login-btn">
+    Sign in with Google
+  </button>
+
+  <p id="loginMessage" class="login-message"></p>
+
+</div>
+```
+
+  </div>
+
+  <!-- MAIN APPLICATION -->
+
+  <div id="appPage" class="hidden">
+
+```
+<header class="top-header">
+
+  <div>
+    <h1>Personal Planner</h1>
+    <p>Plan the month. Execute the day.</p>
+  </div>
+
+  <div class="header-right">
+
+    <span id="userName"></span>
+
+    <button id="logoutBtn" class="logout-btn">
+      Logout
+    </button>
+
+  </div>
+
+</header>
+
+
+<main class="container">
+
+  <!-- STATISTICS -->
+
+  <section class="stats">
+
+    <div class="stat-card">
+      <small>Current Month</small>
+      <strong id="currentMonth"></strong>
+    </div>
+
+    <div class="stat-card">
+      <small>Tasks</small>
+      <strong id="taskCount">0</strong>
+    </div>
+
+    <div class="stat-card">
+      <small>Completed</small>
+      <strong id="completedCount">0</strong>
+    </div>
+
+    <div class="stat-card">
+      <small>Selected Date</small>
+      <strong id="selectedDate"></strong>
+    </div>
+
+  </section>
+
+
+  <!-- CALENDAR + DAILY PLANNER -->
+
+  <section class="main-grid">
+
+    <!-- CALENDAR -->
+
+    <div class="panel">
+
+      <div class="calendar-header">
+
+        <button id="previousMonth">←</button>
+
+        <h2 id="calendarTitle"></h2>
+
+        <button id="nextMonth">→</button>
+
+      </div>
+
+      <div id="calendar" class="calendar"></div>
+
+    </div>
+
+
+    <!-- DAILY ENTRY -->
+
+    <div class="panel">
+
+      <h2 id="dayTitle">
+        Day-wise Entry
+      </h2>
+
+      <label for="dailyGoal">
+        Daily Goal
+      </label>
+
+      <input
+        id="dailyGoal"
+        type="text"
+        placeholder="What is your main goal today?"
+      >
+
+
+      <label for="dailyNotes">
+        Notes / Journal
+      </label>
+
+      <textarea
+        id="dailyNotes"
+        placeholder="Write your meetings, ideas, work, progress..."
+      ></textarea>
+
+
+      <button id="saveDayBtn" class="primary-btn">
+        Save Day Entry
+      </button>
+
+
+      <hr>
+
+
+      <h3>Tasks</h3>
+
+      <div class="task-input-row">
+
+        <input
+          id="taskInput"
+          type="text"
+          placeholder="Add a task"
+        >
+
+        <button id="addTaskBtn" class="primary-btn">
+          Add
+        </button>
+
+      </div>
+
+      <div id="tasks"></div>
+
+    </div>
+
+  </section>
+
+
+  <!-- MONTHLY PLAN -->
+
+  <section class="panel monthly-panel">
+
+    <div class="monthly-header">
+
+      <div>
+        <h2>Monthly Plan</h2>
+
+        <p>
+          Priorities for
+          <span id="monthlyPlanMonth"></span>
+        </p>
+      </div>
+
+      <button id="saveMonthBtn" class="primary-btn">
+        Save Monthly Plan
+      </button>
+
+    </div>
+
+
+    <textarea
+      id="monthlyPlan"
+      placeholder="1. Work / teaching goals
+```
+
+2. Research goals
+3. Personal goals
+4. Fitness / learning goals"
+></textarea>
+
+```
+  </section>
+
+</main>
+```
+
+  </div>
+
+  <!-- Configuration -->
+
+  <script src="config.js"></script>
+
+  <!-- Application -->
+
+  <script src="app.js"></script>
+
+</body>
+</html>
