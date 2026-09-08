@@ -21,9 +21,10 @@ viewDate.getMonth(),
 1
 );
 
-/* --------------------------------------------------
-BASIC HELPERS
--------------------------------------------------- */
+let plannerData = {
+days: {},
+months: {}
+};
 
 function $(id) {
 return document.getElementById(id);
@@ -78,49 +79,54 @@ return {
 });
 }
 
-/* --------------------------------------------------
-GOOGLE INITIALIZATION
--------------------------------------------------- */
+/* ================================
+GOOGLE CONFIGURATION
+================================ */
 
 function googleConfigured() {
 return (
 window.PLANNER_CONFIG &&
 window.PLANNER_CONFIG.CLIENT_ID &&
 !window.PLANNER_CONFIG.CLIENT_ID.includes(
-"PASTE_YOUR_GOOGLE_WEB_CLIENT_ID_HERE"
+"PASTE_YOUR_GOOGLE_CLIENT_ID_HERE"
 )
 );
 }
 
-async function waitForGoogle() {
-return new Promise((resolve) => {
-const check = () => {
-if (
-window.google &&
-window.google.accounts &&
-window.gapi
-) {
-resolve();
-} else {
-setTimeout(check, 300);
-}
-};
+function waitForGoogle() {
+return new Promise(function (resolve) {
 
 ```
+function check() {
+
+  if (
+    window.google &&
+    window.google.accounts &&
+    window.gapi
+  ) {
+    resolve();
+  } else {
+    setTimeout(check, 300);
+  }
+}
+
 check();
 ```
 
 });
 }
 
+/* ================================
+GOOGLE INITIALIZATION
+================================ */
+
 async function initializeGoogle() {
 
 if (!googleConfigured()) {
 
 ```
-$("loginMessage").innerHTML =
-  "Google login is not configured yet.<br>" +
-  "Add your Client ID to <b>config.js</b>.";
+$("loginMessage").textContent =
+  "Google Client ID is not configured.";
 
 $("googleLoginBtn").disabled = true;
 
@@ -129,76 +135,96 @@ return;
 
 }
 
+try {
+
+```
 await waitForGoogle();
 
 gapi.load("client", async function () {
 
-```
-try {
+  try {
 
-  await gapi.client.init({
-    discoveryDocs: [
-      SHEETS_DISCOVERY,
-      DRIVE_DISCOVERY
-    ]
-  });
-
-  tokenClient =
-    google.accounts.oauth2.initTokenClient({
-
-      client_id:
-        PLANNER_CONFIG.CLIENT_ID,
-
-      scope: SCOPES,
-
-      callback: async function (response) {
-
-        if (response.error) {
-
-          console.error(response);
-
-          $("loginMessage").textContent =
-            "Google login was cancelled or failed.";
-
-          return;
-        }
-
-        accessToken = response.access_token;
-
-        gapi.client.setToken({
-          access_token: accessToken
-        });
-
-        try {
-          await startPlanner();
-        } catch (error) {
-
-          console.error(error);
-
-          $("loginMessage").textContent =
-            "Could not open your planner. " +
-            "Please check your Google API settings.";
-        }
-      }
+    await gapi.client.init({
+      discoveryDocs: [
+        SHEETS_DISCOVERY,
+        DRIVE_DISCOVERY
+      ]
     });
 
-  $("googleLoginBtn").disabled = false;
+    tokenClient =
+      google.accounts.oauth2.initTokenClient({
+
+        client_id:
+          PLANNER_CONFIG.CLIENT_ID,
+
+        scope: SCOPES,
+
+        callback: async function (response) {
+
+          if (response.error) {
+
+            console.error(response);
+
+            $("loginMessage").textContent =
+              "Google sign-in failed.";
+
+            return;
+          }
+
+          accessToken =
+            response.access_token;
+
+          gapi.client.setToken({
+            access_token: accessToken
+          });
+
+          try {
+
+            await startPlanner();
+
+          } catch (error) {
+
+            console.error(error);
+
+            $("loginMessage").textContent =
+              "Could not open your planner. " +
+              "Please check Google permissions.";
+
+          }
+        }
+      });
+
+    $("googleLoginBtn").disabled = false;
+
+    $("loginMessage").textContent = "";
+
+  } catch (error) {
+
+    console.error(error);
+
+    $("loginMessage").textContent =
+      "Google API initialization failed.";
+
+  }
+
+});
+```
 
 } catch (error) {
 
-  console.error(error);
+```
+console.error(error);
 
-  $("loginMessage").textContent =
-    "Google API could not be initialized.";
-}
+$("loginMessage").textContent =
+  "Google services could not be loaded.";
 ```
 
-});
+}
 }
 
-/* --------------------------------------------------
-LOGIN
--------------------------------------------------- */
+/* ================================
+GOOGLE LOGIN BUTTON
+================================ */
 
 $("googleLoginBtn").disabled = true;
 
@@ -210,7 +236,7 @@ function () {
 if (!tokenClient) {
 
   $("loginMessage").textContent =
-    "Google is still loading. Please try again.";
+    "Google sign-in is still loading.";
 
   return;
 }
@@ -223,15 +249,16 @@ tokenClient.requestAccessToken({
 }
 );
 
-/* --------------------------------------------------
-START PLANNER
--------------------------------------------------- */
+/* ================================
+START APPLICATION
+================================ */
 
 async function startPlanner() {
 
 await findOrCreateSpreadsheet();
 
 $("loginPage").classList.add("hidden");
+
 $("appPage").classList.remove("hidden");
 
 $("userName").textContent =
@@ -240,9 +267,9 @@ $("userName").textContent =
 await renderAll();
 }
 
-/* --------------------------------------------------
-FIND EXISTING PLANNER SHEET
--------------------------------------------------- */
+/* ================================
+FIND OR CREATE SPREADSHEET
+================================ */
 
 async function findOrCreateSpreadsheet() {
 
@@ -250,58 +277,50 @@ const sheetName =
 PLANNER_CONFIG.SHEET_NAME ||
 "Srikanth Personal Planner";
 
-try {
+const response =
+await gapi.client.drive.files.list({
 
 ```
-const response =
-  await gapi.client.drive.files.list({
+  q:
+    "name = '" +
+    sheetName.replace(/'/g, "\\'") +
+    "' " +
+    "and mimeType = 'application/vnd.google-apps.spreadsheet' " +
+    "and trashed = false",
 
-    q:
-      "name = '" +
-      sheetName.replace(/'/g, "\\'") +
-      "' " +
-      "and mimeType = 'application/vnd.google-apps.spreadsheet' " +
-      "and trashed = false",
+  spaces: "drive",
 
-    spaces: "drive",
+  fields:
+    "files(id,name,modifiedTime)",
 
-    fields: "files(id,name,modifiedTime)",
-
-    pageSize: 10
-  });
+  pageSize: 10
+});
+```
 
 const files =
-  response.result.files || [];
+response.result.files || [];
 
 if (files.length > 0) {
 
-  spreadsheetId = files[0].id;
+```
+spreadsheetId =
+  files[0].id;
 
-  await ensurePlannerSheet();
+await ensurePlannerSheet();
+```
 
-  return;
-}
+} else {
 
+```
 await createSpreadsheet(sheetName);
 ```
 
-} catch (error) {
-
-```
-console.error(
-  "Drive search failed:",
-  error
-);
-
-throw error;
-```
-
 }
 }
 
-/* --------------------------------------------------
-CREATE NEW GOOGLE SHEET
--------------------------------------------------- */
+/* ================================
+CREATE GOOGLE SHEET
+================================ */
 
 async function createSpreadsheet(name) {
 
@@ -316,13 +335,16 @@ await gapi.client.sheets.spreadsheets.create({
     },
 
     sheets: [
+
       {
         properties: {
           title: "Planner"
         }
       }
+
     ]
   }
+
 });
 ```
 
@@ -332,9 +354,9 @@ response.result.spreadsheetId;
 await initializePlannerSheet();
 }
 
-/* --------------------------------------------------
-MAKE SURE PLANNER TAB EXISTS
--------------------------------------------------- */
+/* ================================
+ENSURE PLANNER SHEET EXISTS
+================================ */
 
 async function ensurePlannerSheet() {
 
@@ -346,7 +368,7 @@ spreadsheetId: spreadsheetId
 const sheets =
 response.result.sheets || [];
 
-const plannerExists =
+const exists =
 sheets.some(function (sheet) {
 
 ```
@@ -354,10 +376,11 @@ sheets.some(function (sheet) {
     sheet.properties &&
     sheet.properties.title === "Planner"
   );
+
 });
 ```
 
-if (!plannerExists) {
+if (!exists) {
 
 ```
 await gapi.client.sheets.spreadsheets.batchUpdate({
@@ -370,14 +393,19 @@ await gapi.client.sheets.spreadsheets.batchUpdate({
 
       {
         addSheet: {
+
           properties: {
             title: "Planner"
           }
+
         }
+
       }
 
     ]
+
   }
+
 });
 
 await initializePlannerSheet();
@@ -386,28 +414,31 @@ await initializePlannerSheet();
 } else {
 
 ```
-const headerCheck =
+const header =
   await gapi.client.sheets.spreadsheets.values.get({
 
     spreadsheetId: spreadsheetId,
 
     range: "Planner!A1:E1"
+
   });
 
 if (
-  !headerCheck.result.values ||
-  !headerCheck.result.values.length
+  !header.result.values ||
+  header.result.values.length === 0
 ) {
+
   await initializePlannerSheet();
+
 }
 ```
 
 }
 }
 
-/* --------------------------------------------------
-INITIAL SHEET HEADER
--------------------------------------------------- */
+/* ================================
+INITIALIZE HEADER
+================================ */
 
 async function initializePlannerSheet() {
 
@@ -423,6 +454,7 @@ valueInputOption: "RAW",
 resource: {
 
   values: [
+
     [
       "Type",
       "Key",
@@ -430,21 +462,18 @@ resource: {
       "Value",
       "Updated"
     ]
+
   ]
+
 }
 ```
 
 });
 }
 
-/* --------------------------------------------------
-LOAD ALL PLANNER DATA
--------------------------------------------------- */
-
-let plannerData = {
-days: {},
-months: {}
-};
+/* ================================
+LOAD DATA
+================================ */
 
 async function loadPlannerData() {
 
@@ -455,6 +484,7 @@ await gapi.client.sheets.spreadsheets.values.get({
   spreadsheetId: spreadsheetId,
 
   range: "Planner!A:E"
+
 });
 ```
 
@@ -483,6 +513,7 @@ if (type === "day") {
       notes: "",
       tasks: []
     };
+
   }
 
   if (field === "goal") {
@@ -500,11 +531,14 @@ if (type === "day") {
       plannerData.days[key].tasks =
         JSON.parse(value || "[]");
 
-    } catch {
+    } catch (error) {
 
       plannerData.days[key].tasks = [];
+
     }
+
   }
+
 }
 
 if (type === "month") {
@@ -512,16 +546,18 @@ if (type === "month") {
   if (field === "plan") {
 
     plannerData.months[key] = value;
+
   }
+
 }
 ```
 
 });
 }
 
-/* --------------------------------------------------
-SAVE / UPDATE A SINGLE ROW
--------------------------------------------------- */
+/* ================================
+SAVE ROW
+================================ */
 
 async function saveRow(
 type,
@@ -537,34 +573,50 @@ await gapi.client.sheets.spreadsheets.values.get({
   spreadsheetId: spreadsheetId,
 
   range: "Planner!A:E"
+
 });
 ```
 
 const rows =
 response.result.values || [];
 
-const rowNumber =
-rows.findIndex(function (row, index) {
+let existingRow = -1;
+
+for (
+let i = 1;
+i < rows.length;
+i++
+) {
 
 ```
-  return (
-    index > 0 &&
-    row[0] === type &&
-    row[1] === key &&
-    row[2] === field
-  );
-});
+if (
+  rows[i][0] === type &&
+  rows[i][1] === key &&
+  rows[i][2] === field
+) {
+
+  existingRow = i + 1;
+
+  break;
+
+}
 ```
 
-const newRow = [
+}
+
+const row = [
+
+```
 type,
 key,
 field,
 String(value),
 new Date().toISOString()
+```
+
 ];
 
-if (rowNumber > 0) {
+if (existingRow !== -1) {
 
 ```
 await gapi.client.sheets.spreadsheets.values.update({
@@ -573,15 +625,16 @@ await gapi.client.sheets.spreadsheets.values.update({
 
   range:
     "Planner!A" +
-    (rowNumber + 1) +
+    existingRow +
     ":E" +
-    (rowNumber + 1),
+    existingRow,
 
   valueInputOption: "RAW",
 
   resource: {
-    values: [newRow]
+    values: [row]
   }
+
 });
 ```
 
@@ -599,17 +652,18 @@ await gapi.client.sheets.spreadsheets.values.append({
   insertDataOption: "INSERT_ROWS",
 
   resource: {
-    values: [newRow]
+    values: [row]
   }
+
 });
 ```
 
 }
 }
 
-/* --------------------------------------------------
-RENDER EVERYTHING
--------------------------------------------------- */
+/* ================================
+RENDER ALL
+================================ */
 
 async function renderAll() {
 
@@ -622,9 +676,9 @@ loadDay();
 loadMonth();
 }
 
-/* --------------------------------------------------
+/* ================================
 CALENDAR
--------------------------------------------------- */
+================================ */
 
 function renderCalendar() {
 
@@ -649,13 +703,13 @@ const weekdays = [
 "Sat"
 ];
 
-weekdays.forEach(function (day) {
+weekdays.forEach(function (weekday) {
 
 ```
 calendar.innerHTML +=
-  `<div class="calendar-weekday">
-    ${day}
-  </div>`;
+  '<div class="calendar-weekday">' +
+  weekday +
+  "</div>";
 ```
 
 });
@@ -667,14 +721,18 @@ viewDate.getMonth(),
 1
 ).getDay();
 
-const numberOfDays =
+const days =
 new Date(
 viewDate.getFullYear(),
 viewDate.getMonth() + 1,
 0
 ).getDate();
 
-for (let i = 0; i < firstDay; i++) {
+for (
+let i = 0;
+i < firstDay;
+i++
+) {
 
 ```
 calendar.innerHTML +=
@@ -685,7 +743,7 @@ calendar.innerHTML +=
 
 for (
 let number = 1;
-number <= numberOfDays;
+number <= days;
 number++
 ) {
 
@@ -697,13 +755,16 @@ const date =
     number
   );
 
-const key = dateKey(date);
+const key =
+  dateKey(date);
 
 const entry =
   plannerData.days[key] || {
+
     goal: "",
     notes: "",
     tasks: []
+
   };
 
 const tasks =
@@ -715,16 +776,20 @@ let classes =
 if (
   key === dateKey(selectedDate)
 ) {
+
   classes += " selected";
+
 }
 
 if (
   key === dateKey(new Date())
 ) {
+
   classes += " today";
+
 }
 
-let info = "";
+let information = "";
 
 if (tasks.length > 0) {
 
@@ -735,61 +800,72 @@ if (tasks.length > 0) {
       }
     ).length;
 
-  info +=
-    `✓ ${completed}/${tasks.length}`;
+  information +=
+    "✓ " +
+    completed +
+    "/" +
+    tasks.length;
+
 }
 
 if (entry.goal) {
 
-  info +=
+  information +=
     "<br>📝";
+
 }
 
 calendar.innerHTML +=
-  `<div
-    class="${classes}"
-    data-date="${key}"
-  >
-    <div class="calendar-day-number">
-      ${number}
-    </div>
 
-    <div class="calendar-info">
-      ${info}
-    </div>
-  </div>`;
+  '<div class="' +
+  classes +
+  '" data-date="' +
+  key +
+  '">' +
+
+  '<div class="calendar-day-number">' +
+  number +
+  "</div>" +
+
+  '<div class="calendar-info">' +
+  information +
+  "</div>" +
+
+  "</div>";
 ```
 
 }
 
 calendar
 .querySelectorAll(".calendar-day")
-.forEach(function (element) {
+.forEach(function (day) {
 
 ```
-  element.addEventListener(
+  day.addEventListener(
     "click",
     function () {
 
       selectedDate =
         new Date(
-          element.dataset.date +
+          day.dataset.date +
           "T00:00:00"
         );
 
       loadDay();
 
       renderCalendar();
+
     }
   );
+
 });
 ```
 
 }
 
-/* --------------------------------------------------
-DAILY ENTRY
--------------------------------------------------- */
+/* ================================
+LOAD DAILY ENTRY
+================================ */
 
 function loadDay() {
 
@@ -798,10 +874,14 @@ dateKey(selectedDate);
 
 const entry =
 plannerData.days[key] || {
-goal: "",
-notes: "",
-tasks: []
+
+```
+  goal: "",
+  notes: "",
+  tasks: []
+
 };
+```
 
 $("dayTitle").textContent =
 "Day-wise Entry — " +
@@ -816,12 +896,14 @@ entry.goal || "";
 $("dailyNotes").value =
 entry.notes || "";
 
-renderTasks(entry.tasks || []);
+renderTasks(
+entry.tasks || []
+);
 }
 
-/* --------------------------------------------------
+/* ================================
 SAVE DAILY ENTRY
--------------------------------------------------- */
+================================ */
 
 $("saveDayBtn").addEventListener(
 "click",
@@ -833,9 +915,11 @@ const key =
 
 const entry =
   plannerData.days[key] || {
+
     goal: "",
     notes: "",
     tasks: []
+
   };
 
 entry.goal =
@@ -876,15 +960,16 @@ try {
   alert(
     "Could not save the day entry."
   );
+
 }
 ```
 
 }
 );
 
-/* --------------------------------------------------
-TASKS
--------------------------------------------------- */
+/* ================================
+TASK DISPLAY
+================================ */
 
 function renderTasks(tasks) {
 
@@ -898,13 +983,13 @@ return task.done;
 }
 ).length;
 
-if (!tasks.length) {
+if (tasks.length === 0) {
 
 ```
 $("tasks").innerHTML =
-  `<p style="color:#64748b">
-    No tasks yet.
-  </p>`;
+  '<p style="color:#64748b">' +
+  "No tasks yet." +
+  "</p>";
 
 return;
 ```
@@ -912,35 +997,41 @@ return;
 }
 
 $("tasks").innerHTML =
-tasks.map(function (task, index) {
+tasks.map(
+function (task, index) {
 
 ```
-  return `
-    <div class="task ${
-      task.done ? "done" : ""
-    }">
+    return (
 
-      <input
-        type="checkbox"
-        data-task-index="${index}"
-        ${task.done ? "checked" : ""}
-      >
+      '<div class="task ' +
+      (task.done ? "done" : "") +
+      '">' +
 
-      <span>
-        ${escapeHTML(task.text)}
-      </span>
+      '<input type="checkbox" ' +
+      'data-task-index="' +
+      index +
+      '"' +
+      (task.done ? " checked" : "") +
+      ">" +
 
-      <button
-        class="delete-task"
-        data-delete-task="${index}"
-      >
-        ×
-      </button>
+      "<span>" +
+      escapeHTML(task.text) +
+      "</span>" +
 
-    </div>
-  `;
+      '<button ' +
+      'class="delete-task" ' +
+      'data-delete-task="' +
+      index +
+      '">' +
+      "×" +
+      "</button>" +
 
-}).join("");
+      "</div>"
+
+    );
+
+  }
+).join("");
 ```
 
 $("tasks")
@@ -978,8 +1069,10 @@ $("tasks")
       loadDay();
 
       renderCalendar();
+
     }
   );
+
 });
 ```
 
@@ -1020,16 +1113,18 @@ $("tasks")
       loadDay();
 
       renderCalendar();
+
     }
   );
+
 });
 ```
 
 }
 
-/* --------------------------------------------------
+/* ================================
 ADD TASK
--------------------------------------------------- */
+================================ */
 
 async function addTask() {
 
@@ -1047,18 +1142,23 @@ if (!plannerData.days[key]) {
 
 ```
 plannerData.days[key] = {
+
   goal: "",
   notes: "",
   tasks: []
+
 };
 ```
 
 }
 
-plannerData.days[key]
-.tasks.push({
+plannerData.days[key].tasks.push({
+
+```
 text: text,
 done: false
+```
+
 });
 
 await saveRow(
@@ -1088,16 +1188,18 @@ function (event) {
 
 ```
 if (event.key === "Enter") {
+
   addTask();
+
 }
 ```
 
 }
 );
 
-/* --------------------------------------------------
+/* ================================
 MONTHLY PLAN
--------------------------------------------------- */
+================================ */
 
 function loadMonth() {
 
@@ -1142,17 +1244,18 @@ try {
   console.error(error);
 
   alert(
-    "Could not save the monthly plan."
+    "Could not save monthly plan."
   );
+
 }
 ```
 
 }
 );
 
-/* --------------------------------------------------
-CHANGE MONTH
--------------------------------------------------- */
+/* ================================
+MONTH NAVIGATION
+================================ */
 
 $("previousMonth").addEventListener(
 "click",
@@ -1196,9 +1299,9 @@ await renderAll();
 }
 );
 
-/* --------------------------------------------------
-SAVE FEEDBACK
--------------------------------------------------- */
+/* ================================
+SAVED MESSAGE
+================================ */
 
 function showSaved(button) {
 
@@ -1208,19 +1311,23 @@ button.textContent;
 button.textContent =
 "Saved ✓";
 
-setTimeout(function () {
+setTimeout(
+function () {
 
 ```
-button.textContent =
-  oldText;
+  button.textContent =
+    oldText;
+
+},
+1500
 ```
 
-}, 1500);
+);
 }
 
-/* --------------------------------------------------
+/* ================================
 LOGOUT
--------------------------------------------------- */
+================================ */
 
 $("logoutBtn").addEventListener(
 "click",
@@ -1238,6 +1345,7 @@ if (
     accessToken,
     function () {}
   );
+
 }
 
 accessToken = null;
@@ -1249,20 +1357,16 @@ $("appPage")
 
 $("loginPage")
   .classList.remove("hidden");
-
-$("loginMessage").textContent =
-  "Signed out.";
 ```
 
 }
 );
 
-/* --------------------------------------------------
+/* ================================
 START
--------------------------------------------------- */
+================================ */
 
 window.addEventListener(
 "load",
 initializeGoogle
 );
-
