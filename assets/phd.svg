@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+<rect width="200" height="200" rx="28" fill="#eef3f7"/>
+<circle cx="100" cy="76" r="35" fill="#b68a4c"/><path d="M55 76 L100 48 L145 76 L100 104 Z" fill="#102033"/><path d="M145 76 V105" stroke="#102033" stroke-width="6"/><circle cx="145" cy="110" r="5" fill="#b68a4c"/>
+<text x="100" y="145" text-anchor="middle" font-family="Arial" font-size="22" font-weight="700" fill="#102033">Ph.D.</text>
+<text x="100" y="170" text-anchor="middle" font-family="Arial" font-size="11" fill="#627287">Civil Engineering</text>
+</svg>

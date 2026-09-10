@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+<rect width="200" height="200" rx="28" fill="#eef3f7"/>
+<path d="M55 110 L100 55 L145 110 Z" fill="#102033"/><path d="M65 110v30h70v-30M82 110v30M118 110v30" stroke="#b68a4c" stroke-width="9"/><path d="M42 140h116" stroke="#102033" stroke-width="8"/>
+<text x="100" y="145" text-anchor="middle" font-family="Arial" font-size="22" font-weight="700" fill="#102033">B.E.</text>
+<text x="100" y="170" text-anchor="middle" font-family="Arial" font-size="11" fill="#627287">Civil Engineering</text>
+</svg>

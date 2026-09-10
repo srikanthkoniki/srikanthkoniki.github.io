@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+<rect width="200" height="200" rx="28" fill="#eef3f7"/>
+<path d="M45 55h110v62H45z" fill="#102033"/><path d="M60 70h80M60 86h55M60 102h75" stroke="#eef3f7" stroke-width="7"/><circle cx="100" cy="38" r="18" fill="#b68a4c"/>
+<text x="100" y="145" text-anchor="middle" font-family="Arial" font-size="22" font-weight="700" fill="#102033">M.Tech</text>
+<text x="100" y="170" text-anchor="middle" font-family="Arial" font-size="11" fill="#627287">Construction</text>
+</svg>
